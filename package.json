@@ -1,0 +1,45 @@
+{
+  "name": "simple-journal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.3",
+    "tsx": "^4.8.1",
+    "jiti": ">=1.21.0",
+    "less": "^4.0.0",
+    "sass": "^1.70.0",
+    "vite": "^5.1.0",
+    "yaml": "^2.4.2",
+    "envify": "~1.0.1",
+    "stylus": ">=0.54.8",
+    "terser": "^5.16.0",
+    "postcss": "^8.4.35",
+    "sugarss": "^5.0.0",
+    "@types/node": "^20.19.0 || >=22.12.0",
+    "tailwindcss": "^4.1.11",
+    "autoprefixer": "^10.4.17",
+    "lightningcss": "^1.21.0",
+    "react-router": "^6.22.3",
+    "@heroui/react": "^2.8.1",
+    "framer-motion": "^12.23.9",
+    "sass-embedded": "^1.70.0",
+    "@heroicons/react": "^2.1.1",
+    "@vitejs/plugin-react": "^4.2.0",
+    "@emotion/is-prop-valid": "*"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "vite": "^5.1.0"
+  }
+}
