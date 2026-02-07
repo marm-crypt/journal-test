@@ -12,7 +12,7 @@
    ========================================================= */
 
 :root {
-  --content-w: clamp(320px, 80vw, 620px);
+  --content-w: clamp(320px, 90vw, 620px);
 
   --bg-1: #f7f4ff;
   --bg-2: #efeaff;

@@ -150,7 +150,7 @@ export default function Home({
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Today felt..."
+                  placeholder="Title"
                 />
 
                 <label
