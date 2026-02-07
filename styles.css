@@ -137,7 +137,7 @@ body {
   font-weight: 500;
   font-size: 20px;
   letter-spacing: 0.10em;
-  color: rgba(15, 23, 42, 0.92);
+  color: var(--brand); /* changed: header text is brand purple */
 }
 
 .brand-logo {
@@ -149,6 +149,11 @@ body {
   background: var(--brand);
   color: #fff;
   flex: 0 0 auto;
+}
+
+/* changed: hide logo icon everywhere (keep text only) */
+.brand-logo {
+  display: none !important;
 }
 
 /* ---------- tabs ---------- */
@@ -296,6 +301,7 @@ body {
 .card--brand {
   background: var(--brand);
   border-color: rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.96); /* changed: make weekly reflection title white */
 }
 
 .card--brand .section-title {
@@ -463,6 +469,18 @@ button:disabled {
 .prompt-text {
   font-weight: 650;
   line-height: 1.35;
+}
+
+/* changed: Shuffle button full width + brand purple */
+.prompt-band .btn-soft {
+  width: 100%;
+  background: var(--brand);
+  border-color: rgba(116, 94, 246, 0.18);
+  color: #fff;
+}
+
+.prompt-band .btn-soft:hover {
+  background: var(--brand-dark);
 }
 
 /* ---------- tags ---------- */

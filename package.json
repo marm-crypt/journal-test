@@ -12,6 +12,7 @@
     "@emotion/is-prop-valid": "*",
     "@heroicons/react": "^2.1.1",
     "@heroui/react": "^2.8.1",
+    "@supabase/supabase-js": "^2.95.3",
     "@types/node": "^20.19.0 || >=22.12.0",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.17",
