@@ -1,10 +1,11 @@
+# dependencies
+node_modules/
 
-# gh-pages cache
+# build / cache
 node_modules/.cache/
+dist/
+docs/.vite/
 
-
-node_modules/.cache/
-
-
-node_modules/.cache/
-
+# mac junk
+.DS_Store
+__MACOSX/
