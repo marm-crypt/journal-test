@@ -20,7 +20,9 @@
 
   /* Brand */
   --brand: #745EF6;
+  --brand-light:#9684fb;
   --brand-dark: #6147f0;
+  --brand-yellow: #FFEE8C;
 
   /* Pale purple for secondary actions */
   --brand-soft-bg: rgba(116, 94, 246, 0.14);
@@ -457,7 +459,7 @@ button:disabled {
 
 /* ---------- prompt band ---------- */
 .prompt-band {
-  background: rgba(255, 255, 255, 0.60);
+  background:#6147f0; 
   border: 1px solid rgba(116, 94, 246, 0.10);
   border-radius: 16px;
   padding: 12px;
@@ -468,19 +470,22 @@ button:disabled {
 
 .prompt-text {
   font-weight: 650;
+  color: #fff6fb;
+  padding-bottom: 20px;
+  padding-top: 10px;
   line-height: 1.35;
+  align-self: center;
 }
 
 /* changed: Shuffle button full width + brand purple */
 .prompt-band .btn-soft {
   width: 100%;
-  background: var(--brand);
-  border-color: rgba(116, 94, 246, 0.18);
-  color: #fff;
+  background: var(--brand-light);
+  color: #ffffff;
 }
 
 .prompt-band .btn-soft:hover {
-  background: var(--brand-dark);
+  background: var(--brand-yellow);
 }
 
 /* ---------- tags ---------- */
