@@ -1,5 +1,20 @@
-import React, { useEffect, useState } from "react";
-import { NavLink, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  NavLink,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  ChevronDownIcon,
+  HomeIcon,
+  MagnifyingGlassIcon,
+  Squares2X2Icon,
+  UserCircleIcon,
+} from "@heroicons/react/24/outline";
 
 import Home from "./pages/Home.jsx";
 import Auth from "./pages/Auth.jsx";
@@ -17,9 +32,67 @@ export default function App() {
 
   const [entries, setEntries] = useState([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef(null);
+  const searchWrapRef = useRef(null);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)").matches : false
+  );
 
   const location = useLocation();
+  const navigate = useNavigate();
   const hideTabs = location.pathname.startsWith("/auth");
+
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    const arr = Array.isArray(entries) ? entries : [];
+    return arr
+      .filter((e) => {
+        const title = (e?.title || "").toLowerCase();
+        const content = (e?.content || "").toLowerCase();
+        return title.includes(q) || content.includes(q);
+      })
+      .slice(0, 24);
+  }, [entries, searchQuery]);
+
+  function closeSearch() {
+    if (!isDesktop) setSearchOpen(false);
+    setSearchQuery("");
+  }
+
+  function openSearch() {
+    if (isDesktop) {
+      setSearchOpen(true);
+      return;
+    }
+    setSearchOpen((prev) => !prev);
+  }
+
+  function formatEntryDate(iso) {
+    const d = new Date(iso || "");
+    if (isNaN(d)) return "";
+    return d.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  function getEntryExcerpt(content) {
+    const text = (content || "").replace(/\s+/g, " ").trim();
+    if (!text) return "No content";
+    return text.length > 120 ? `${text.slice(0, 120)}...` : text;
+  }
+
+  async function handleLogout() {
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      navigate("/auth", { replace: true });
+    }
+  }
 
   /* ---------------------------
      Auth session boot
@@ -74,12 +147,55 @@ export default function App() {
     }
   }
 
-  // When session changes (login/logout), refresh entries
   useEffect(() => {
     const userId = session?.user?.id;
     fetchEntries(userId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setIsDesktop(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    setSearchOpen(isDesktop);
+  }, [isDesktop]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") closeSearch();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const onPointerDown = (e) => {
+      if (!searchWrapRef.current?.contains(e.target)) {
+        closeSearch();
+      }
+    };
+    window.addEventListener("mousedown", onPointerDown);
+    return () => window.removeEventListener("mousedown", onPointerDown);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const t = setTimeout(() => searchInputRef.current?.focus(), 0);
+    return () => clearTimeout(t);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (searchOpen) closeSearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   /* ---------------------------
      CRUD
@@ -100,7 +216,6 @@ export default function App() {
       updated_at: now,
     };
 
-    // IMPORTANT: select() returns inserted rows back so UI can update immediately
     const { data, error } = await supabase
       .from("journal_entries")
       .insert(payload)
@@ -108,12 +223,10 @@ export default function App() {
 
     if (error) throw error;
 
-    // Optimistic update: prepend inserted row(s)
     const inserted = Array.isArray(data) ? data : [];
     if (inserted.length) {
       setEntries((prev) => [...inserted, ...prev]);
     } else {
-      // Fallback: refetch if insert returned nothing
       await fetchEntries(userId);
     }
   }
@@ -123,16 +236,17 @@ export default function App() {
     if (!userId) throw new Error("Not signed in.");
 
     const now = new Date().toISOString();
+    const updatePayload = { updated_at: now };
+
+    if (patch.title !== undefined) updatePayload.title = patch.title || "untitled";
+    if (patch.content !== undefined) updatePayload.content = patch.content;
+    if (patch.mood !== undefined) updatePayload.mood = patch.mood;
+    if (patch.themes !== undefined) updatePayload.themes = patch.themes;
+    if (patch.created_at !== undefined) updatePayload.created_at = patch.created_at;
 
     const { data, error } = await supabase
       .from("journal_entries")
-      .update({
-        title: patch.title || "untitled",
-        content: patch.content,
-        mood: patch.mood,
-        themes: patch.themes,
-        updated_at: now,
-      })
+      .update(updatePayload)
       .eq("id", id)
       .eq("user_id", userId)
       .select("*");
@@ -160,7 +274,6 @@ export default function App() {
 
     if (error) throw error;
 
-    // Remove locally immediately
     setEntries((prev) => prev.filter((e) => e.id !== id));
   }
 
@@ -168,20 +281,130 @@ export default function App() {
      UI
   ---------------------------- */
   if (bootLoading) {
-    // Keep it quiet; your CSS already makes this look fine
     return <div className="app-container" />;
   }
+
+  const mobileSearchMode = searchOpen && !isDesktop;
 
   return (
     <div className="app-container">
       {/* Header */}
-      <header className="app-header">
-        <nav className="nav">
-          <NavLink to="/" className="nav-brand">
-            <div className="brand-logo">R</div>
-            <div className="brand-name">REFLEKT</div>
-          </NavLink>
-        </nav>
+      <header className={`app-header ${mobileSearchMode ? "is-search-open-mobile" : ""}`}>
+        {/* ✅ width constrained to match your cards */}
+        <div className="header-inner">
+          <nav className="nav">
+            {/* Left: brand */}
+            {!mobileSearchMode && (
+              <NavLink to="/" className="nav-brand">
+                <div className="brand-logo">R</div>
+                <div className="brand-name">REFLEKT</div>
+              </NavLink>
+            )}
+
+            {/* Right: auth actions (hidden on /auth) */}
+            {!hideTabs && (
+              <div className={`nav-actions ${mobileSearchMode ? "nav-actions--search" : ""}`}>
+                {/* Desktop button */}
+                {!mobileSearchMode && (!session ? (
+                  <NavLink
+                    to="/auth"
+                    id="authBtn"
+                    className="auth-btn auth-btn--login auth-desktop"
+                    title="Log in"
+                  >
+                    <UserCircleIcon width={16} height={16} />
+                    Log in
+                  </NavLink>
+                ) : (
+                  <button
+                    type="button"
+                    id="authBtn"
+                    className="auth-btn auth-btn--logout auth-desktop"
+                    onClick={handleLogout}
+                    title="Log out"
+                  >
+                    <UserCircleIcon width={16} height={16} />
+                    Log out
+                  </button>
+                ))}
+
+                {session && (
+                  <div
+                    ref={searchWrapRef}
+                    className={`search-inline ${searchOpen ? "is-open" : ""}`}
+                  >
+                    <input
+                      ref={searchInputRef}
+                      className="search-inline-input"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search your entries."
+                      aria-label="Search entries"
+                    />
+                    <button
+                      type="button"
+                      className="search-icon-btn"
+                      onClick={openSearch}
+                      title="Search entries"
+                      aria-label="Search entries"
+                    >
+                      <MagnifyingGlassIcon width={18} height={18} />
+                    </button>
+
+                    {searchOpen && searchQuery.trim() && (
+                      <div className="search-inline-results">
+                        {searchResults.length === 0 ? (
+                          <div className="small-muted">No matching entries found.</div>
+                        ) : (
+                          searchResults.map((e) => (
+                            <button
+                              type="button"
+                              key={e.id}
+                              className="search-result-item"
+                              onClick={() => {
+                                navigate("/dashboard");
+                                closeSearch();
+                              }}
+                            >
+                              <div className="search-result-title">{e.title || "untitled"}</div>
+                              <div className="search-result-meta">{formatEntryDate(e.created_at || e.updated_at)}</div>
+                              <div className="search-result-excerpt">{getEntryExcerpt(e.content)}</div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Mobile: icon dropdown */}
+                <details className="auth-mobile" aria-label="Account menu">
+                  <summary className="auth-icon-btn" title="Account">
+                    <UserCircleIcon width={22} height={22} />
+                    <ChevronDownIcon width={16} height={16} />
+                  </summary>
+
+                  <div className="auth-dropdown" role="menu">
+                    {!session ? (
+                      <NavLink to="/auth" className="auth-dd-item" role="menuitem">
+                        Log in
+                      </NavLink>
+                    ) : (
+                      <button
+                        type="button"
+                        className="auth-dd-item"
+                        role="menuitem"
+                        onClick={handleLogout}
+                      >
+                        Log out
+                      </button>
+                    )}
+                  </div>
+                </details>
+              </div>
+            )}
+          </nav>
+        </div>
       </header>
 
       {/* Tabs */}
@@ -189,13 +412,19 @@ export default function App() {
         <div className="top-tabs">
           <div className="tabs-wrap">
             <div className="tabs">
-              <NavLink to="/" className={({ isActive }) => `tab ${isActive ? "is-active" : ""}`}>
+              <NavLink
+                to="/"
+                className={({ isActive }) => `tab ${isActive ? "is-active" : ""}`}
+              >
+                <HomeIcon width={16} height={16} strokeWidth={2.2} />
                 <span className="tab-label">Home</span>
               </NavLink>
+
               <NavLink
                 to="/dashboard"
                 className={({ isActive }) => `tab ${isActive ? "is-active" : ""}`}
               >
+                <Squares2X2Icon width={16} height={16} strokeWidth={2.2} />
                 <span className="tab-label">Dashboard</span>
               </NavLink>
             </div>
@@ -205,46 +434,49 @@ export default function App() {
 
       {/* Main */}
       <main className="app-main">
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <Home
-                session={session}
-                entries={entries}
-                entriesLoading={entriesLoading}
-                onAddEntry={addEntry}
-                onUpdateEntry={updateEntry}
-                onDeleteEntry={deleteEntry}
-              />
-            }
-          />
-
-          <Route
-            path="/auth"
-            element={session ? <Navigate to="/dashboard" replace /> : <Auth />}
-          />
-
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute session={session}>
-                <Dashboard
+        <div key={location.pathname} className="route-fade">
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Home
                   session={session}
                   entries={entries}
                   entriesLoading={entriesLoading}
+                  onAddEntry={addEntry}
                   onUpdateEntry={updateEntry}
                   onDeleteEntry={deleteEntry}
                 />
-              </ProtectedRoute>
-            }
-          />
+              }
+            />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route
+              path="/auth"
+              element={session ? <Navigate to="/dashboard" replace /> : <Auth />}
+            />
+
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute session={session}>
+                  <Dashboard
+                    session={session}
+                    entries={entries}
+                    entriesLoading={entriesLoading}
+                    onUpdateEntry={updateEntry}
+                    onDeleteEntry={deleteEntry}
+                  />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
       </main>
 
       <footer className="app-footer">Reflekt • private journaling</footer>
+
     </div>
   );
 }
